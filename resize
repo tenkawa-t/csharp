@@ -1,0 +1,41 @@
+using System.Drawing.Imaging;
+
+public unsafe static Bitmap FastResize(Bitmap sourceBitmap, int width, int height)
+{
+    Bitmap result = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+    
+    BitmapData sourceData = sourceBitmap.LockBits(new Rectangle(0, 0, sourceBitmap.Width, sourceBitmap.Height), 
+        ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+    BitmapData resultData = result.LockBits(new Rectangle(0, 0, width, height), 
+        ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+
+    int sourceStride = sourceData.Stride;
+    int resultStride = resultData.Stride;
+
+    byte* sourcePtr = (byte*)sourceData.Scan0;
+    byte* resultPtr = (byte*)resultData.Scan0;
+
+    double xRatio = (double)sourceBitmap.Width / width;
+    double yRatio = (double)sourceBitmap.Height / height;
+
+    for (int y = 0; y < height; y++)
+    {
+        for (int x = 0; x < width; x++)
+        {
+            int px = (int)(x * xRatio);
+            int py = (int)(y * yRatio);
+            int sourceIndex = py * sourceStride + px * 4;
+            int resultIndex = y * resultStride + x * 4;
+
+            resultPtr[resultIndex] = sourcePtr[sourceIndex];
+            resultPtr[resultIndex + 1] = sourcePtr[sourceIndex + 1];
+            resultPtr[resultIndex + 2] = sourcePtr[sourceIndex + 2];
+            resultPtr[resultIndex + 3] = sourcePtr[sourceIndex + 3];
+        }
+    }
+
+    sourceBitmap.UnlockBits(sourceData);
+    result.UnlockBits(resultData);
+
+    return result;
+}
